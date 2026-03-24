@@ -1,3 +1,3 @@
 # D&D Campaign Manager
 
-Kamil Rochala | Igor Mankiewicz
+## Kamil Rochala | Igor Mankiewicz
