@@ -62,13 +62,3 @@ class Character(BaseModel):
         if v > 9999:
             raise ValueError("Max health points cannot exceed 9999")
         return v
-
-    @root_validator()
-    def validate_health_consistency(cls, values):
-        """Ensure current HP doesn't exceed max HP"""
-        health_points = values.get("health_points", 0)
-        max_health_points = values.get("max_health_points", 100)
-        
-        if health_points > max_health_points:
-            raise ValueError("Current health points cannot exceed max health points")
-        return values
