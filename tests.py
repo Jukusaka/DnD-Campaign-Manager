@@ -93,7 +93,56 @@ class TestSpellModel(unittest.TestCase):
 
 
 class TestCharacterModel(unittest.TestCase):
-    pass
+
+    def test_valid_character_creation(self):
+        character = Character(
+            name="Aragorn",
+            level=5,
+            strength=15,
+            intelligence=10,
+            faith=8,
+            vitality=12,
+            defence=14,
+            health_points=120,
+            max_health_points=120
+        )
+        self.assertEqual(character.name, "Aragorn")
+        self.assertEqual(character.level, 5)
+
+    def test_character_invalid_name_characters(self):
+        with self.assertRaises(ValidationError):
+            Character(name="Aragon@#!")  # Special characters not allowed
+
+    def test_character_level_too_high(self):
+        with self.assertRaises(ValidationError):
+            Character(name="Gandalf", level=21)  # Max level is 20
+
+    def test_character_level_too_low(self):
+        with self.assertRaises(ValidationError):
+            Character(name="Gandalf", level=0)  # Min level is 1
+
+    def test_character_stat_out_of_range(self):
+        with self.assertRaises(ValidationError):
+            Character(name="Legolas", strength=25)  # Max stat is 20
+
+    def test_character_negative_health(self):
+        with self.assertRaises(ValidationError):
+            Character(name="Boromir", health_points=-10)  # Cannot be negative
+
+    def test_character_max_health_exceeded(self):
+        with self.assertRaises(ValidationError):
+            Character(name="Sauron", max_health_points=10000)  # Max is 9999
+
+    def test_character_with_items_and_spells(self):
+        item = Item(name="Shield", description="A wooden shield")
+        spell = Spell(name="Heal", description="Restores health")
+        character = Character(
+            name="Cleric",
+            items=[item],
+            spells=[spell]
+        )
+        self.assertEqual(len(character.items), 1)
+        self.assertEqual(len(character.spells), 1)
 
 
 if __name__ == '__main__':
