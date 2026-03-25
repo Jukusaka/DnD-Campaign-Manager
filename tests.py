@@ -51,7 +51,45 @@ class TestItemModel(unittest.TestCase):
 
 
 class TestSpellModel(unittest.TestCase):
-    pass
+
+    def test_valid_spell_creation(self):
+        spell = Spell(
+            name="Fireball",
+            description="Hurls a ball of fire at the target",
+            damage_dice="2d6"
+        )
+        self.assertEqual(spell.name, "Fireball")
+        self.assertEqual(spell.damage_dice, "2d6")
+
+    def test_spell_invalid_damage_dice_format(self):
+        with self.assertRaises(ValidationError):
+            Spell(
+                name="Lightning Bolt",
+                description="Strikes with lightning",
+                damage_dice="roll5"  # Invalid format
+            )
+
+    def test_spell_invalid_dice_size(self):
+        with self.assertRaises(ValidationError):
+            Spell(
+                name="Odd Strike",
+                description="A strange attack",
+                damage_dice="2d7"  # d7 is not a standard die
+            )
+
+    def test_spell_invalid_name_characters(self):
+        with self.assertRaises(ValidationError):
+            Spell(
+                name="Fire@Ball!",  # Special characters not allowed
+                description="Burns everything"
+            )
+
+    def test_spell_empty_description(self):
+        with self.assertRaises(ValidationError):
+            Spell(
+                name="Void",
+                description="   "  # Blank description
+            )
 
 
 class TestCharacterModel(unittest.TestCase):
