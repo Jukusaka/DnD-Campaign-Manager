@@ -2,9 +2,9 @@ import json
 from pathlib import Path
 from typing import List
 from datetime import datetime
-from item import *
-from spell import *
-from character import *
+from models.item import *
+from models.spell import *
+from models.character import *
 
 
 class GameDataManager:
