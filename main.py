@@ -191,3 +191,58 @@ def remove_item():
     except ValueError:
         print("  Please enter a number.")
 
+
+# ─── Spell Actions ────────────────────────────────────────────────────────────
+
+def add_spell():
+    header("Add Spell to Character")
+    character = pick_character()
+    if not character:
+        return
+    print()
+    try:
+        name         = prompt_str("Spell name")
+        description  = prompt_str("Description")
+        casting_time = prompt_str("Casting time", "1")
+        range_       = prompt_str("Range", "Self")
+        duration     = prompt_str("Duration", "Instantaneous")
+        damage_dice  = prompt_str("Damage dice (e.g. 2d6, leave blank for none)", "")
+        damage_dice  = damage_dice if damage_dice else None
+
+        spell = Spell(
+            name=name, description=description,
+            casting_time=casting_time, range=range_,
+            duration=duration, damage_dice=damage_dice
+        )
+        updated = character.copy(update={"spells": character.spells + [spell]})
+        party[party.index(character)] = updated
+        print(f"\n  ✓ '{spell.name}' added to {updated.name}.")
+    except ValidationError as e:
+        print("\n  ✗ Could not create spell:")
+        for err in e.errors():
+            print(f"    - {err['loc'][0]}: {err['msg']}")
+
+def remove_spell():
+    header("Remove Spell from Character")
+    character = pick_character()
+    if not character:
+        return
+    if not character.spells:
+        print("  This character has no spells.")
+        return
+
+    print(f"\n  Spells of {character.name}:")
+    for i, spell in enumerate(character.spells, 1):
+        print(f"    {i}. {spell.name}")
+
+    try:
+        idx = int(input("  Select spell to remove: ")) - 1
+        if 0 <= idx < len(character.spells):
+            new_spells = [sp for j, sp in enumerate(character.spells) if j != idx]
+            updated = character.copy(update={"spells": new_spells})
+            party[party.index(character)] = updated
+            print(f"\n  ✓ Spell removed.")
+        else:
+            print("  Invalid selection.")
+    except ValueError:
+        print("  Please enter a number.")
