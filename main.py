@@ -2,12 +2,25 @@ from models.item import Item
 from models.spell import Spell
 from models.character import Character
 from save import GameDataManager
+from pydantic import ValidationError
 
 
-def print_character(character: Character):
-    print(f"\n{'='*40}")
-    print(f"  {character.name}  (Level {character.level})")
-    print(f"{'='*40}")
+manager = GameDataManager()
+party: list[Character] = []
+
+
+# ─── Display Helpers ──────────────────────────────────────────────────────────
+
+def header(title: str):
+    print(f"\n{'─'*42}")
+    print(f"  {title}")
+    print(f"{'─'*42}")
+
+def pause():
+    input("\n  Press Enter to continue...")
+
+def print_character_sheet(character: Character):
+    header(f"{character.name}  —  Level {character.level}")
     print(f"  HP:           {character.health_points}/{character.max_health_points}")
     print(f"  Strength:     {character.strength}")
     print(f"  Intelligence: {character.intelligence}")
@@ -16,141 +29,358 @@ def print_character(character: Character):
     print(f"  Defence:      {character.defence}")
 
     if character.items:
-        print(f"\n  Items ({len(character.items)}):")
-        for item in character.items:
-            print(f"    - {item.name} [{item.rarity}] | {item.value}g | {item.weight}lb")
-            print(f"      {item.description}")
+        print(f"\n  Items:")
+        for i, item in enumerate(character.items, 1):
+            print(f"    {i}. {item.name} [{item.rarity}] — {item.value}g / {item.weight}lb")
+            print(f"       {item.description}")
+    else:
+        print("\n  Items: none")
 
     if character.spells:
-        print(f"\n  Spells ({len(character.spells)}):")
-        for spell in character.spells:
-            dice_info = f" | Damage: {spell.damage_dice}" if spell.damage_dice else ""
-            print(f"    - {spell.name} | Range: {spell.range} | Duration: {spell.duration}{dice_info}")
-            print(f"      {spell.description}")
+        print(f"\n  Spells:")
+        for i, spell in enumerate(character.spells, 1):
+            dice = f" | {spell.damage_dice}" if spell.damage_dice else ""
+            print(f"    {i}. {spell.name} | {spell.range} | {spell.duration}{dice}")
+            print(f"       {spell.description}")
+    else:
+        print("\n  Spells: none")
 
-    print(f"{'='*40}\n")
+def print_party():
+    if not party:
+        print("  (party is empty)")
+        return
+    for i, c in enumerate(party, 1):
+        print(f"  {i}. {c.name}  (Level {c.level})  —  HP: {c.health_points}/{c.max_health_points}")
 
+def pick_character(prompt="  Select character number: ") -> Character | None:
+    print_party()
+    if not party:
+        return None
+    try:
+        idx = int(input(prompt)) - 1
+        if 0 <= idx < len(party):
+            return party[idx]
+        print("  Invalid selection.")
+    except ValueError:
+        print("  Please enter a number.")
+    return None
+
+
+# ─── Input Helpers ────────────────────────────────────────────────────────────
+
+def prompt_int(label: str, default: int = None) -> int:
+    while True:
+        raw = input(f"  {label}{f' [{default}]' if default is not None else ''}: ").strip()
+        if raw == "" and default is not None:
+            return default
+        try:
+            return int(raw)
+        except ValueError:
+            print("  Please enter a whole number.")
+
+def prompt_str(label: str, default: str = None) -> str:
+    raw = input(f"  {label}{f' [{default}]' if default is not None else ''}: ").strip()
+    return raw if raw else (default or "")
+
+def prompt_float(label: str, default: float = 0.0) -> float:
+    while True:
+        raw = input(f"  {label} [{default}]: ").strip()
+        if raw == "":
+            return default
+        try:
+            return float(raw)
+        except ValueError:
+            print("  Please enter a number.")
+
+
+# ─── Character Actions ────────────────────────────────────────────────────────
+
+def create_character():
+    header("Create New Character")
+    try:
+        name    = prompt_str("Name")
+        level   = prompt_int("Level", 1)
+        str_    = prompt_int("Strength     (1-20)", 10)
+        int_    = prompt_int("Intelligence (1-20)", 10)
+        faith   = prompt_int("Faith        (1-20)", 10)
+        vit     = prompt_int("Vitality     (1-20)", 10)
+        def_    = prompt_int("Defence      (1-20)", 10)
+        max_hp  = prompt_int("Max HP", 100)
+
+        character = Character(
+            name=name, level=level,
+            strength=str_, intelligence=int_, faith=faith,
+            vitality=vit, defence=def_,
+            health_points=max_hp, max_health_points=max_hp
+        )
+        party.append(character)
+        print(f"\n  ✓ {character.name} added to the party!")
+    except ValidationError as e:
+        print("\n  ✗ Could not create character:")
+        for err in e.errors():
+            print(f"    - {err['loc'][0]}: {err['msg']}")
+
+def view_characters():
+    header("View Character Sheet")
+    character = pick_character()
+    if character:
+        print_character_sheet(character)
+
+def remove_character():
+    header("Remove Character")
+    print_party()
+    if not party:
+        return
+    try:
+        idx = int(input("  Select character to remove: ")) - 1
+        if 0 <= idx < len(party):
+            removed = party.pop(idx)
+            print(f"\n  ✓ {removed.name} removed from the party.")
+        else:
+            print("  Invalid selection.")
+    except ValueError:
+        print("  Please enter a number.")
+
+
+# ─── Item Actions ─────────────────────────────────────────────────────────────
+
+def add_item():
+    header("Add Item to Character")
+    character = pick_character()
+    if not character:
+        return
+    print()
+    try:
+        name        = prompt_str("Item name")
+        description = prompt_str("Description")
+        rarity      = prompt_str("Rarity (common/uncommon/rare/very rare/legendary)", "common")
+        weight      = prompt_float("Weight (lb)", 0.0)
+        value       = prompt_int("Value (gold)", 0)
+
+        item = Item(name=name, description=description, rarity=rarity, weight=weight, value=value)
+        updated = character.copy(update={"items": character.items + [item]})
+        party[party.index(character)] = updated
+        print(f"\n  ✓ '{item.name}' added to {updated.name}.")
+    except ValidationError as e:
+        print("\n  ✗ Could not create item:")
+        for err in e.errors():
+            print(f"    - {err['loc'][0]}: {err['msg']}")
+
+def remove_item():
+    header("Remove Item from Character")
+    character = pick_character()
+    if not character:
+        return
+    if not character.items:
+        print("  This character has no items.")
+        return
+
+    print(f"\n  Items of {character.name}:")
+    for i, item in enumerate(character.items, 1):
+        print(f"    {i}. {item.name}")
+
+    try:
+        idx = int(input("  Select item to remove: ")) - 1
+        if 0 <= idx < len(character.items):
+            new_items = [it for j, it in enumerate(character.items) if j != idx]
+            updated = character.copy(update={"items": new_items})
+            party[party.index(character)] = updated
+            print(f"\n  ✓ Item removed.")
+        else:
+            print("  Invalid selection.")
+    except ValueError:
+        print("  Please enter a number.")
+
+
+# ─── Spell Actions ────────────────────────────────────────────────────────────
+
+def add_spell():
+    header("Add Spell to Character")
+    character = pick_character()
+    if not character:
+        return
+    print()
+    try:
+        name         = prompt_str("Spell name")
+        description  = prompt_str("Description")
+        casting_time = prompt_str("Casting time", "1")
+        range_       = prompt_str("Range", "Self")
+        duration     = prompt_str("Duration", "Instantaneous")
+        damage_dice  = prompt_str("Damage dice (e.g. 2d6, leave blank for none)", "")
+        damage_dice  = damage_dice if damage_dice else None
+
+        spell = Spell(
+            name=name, description=description,
+            casting_time=casting_time, range=range_,
+            duration=duration, damage_dice=damage_dice
+        )
+        updated = character.copy(update={"spells": character.spells + [spell]})
+        party[party.index(character)] = updated
+        print(f"\n  ✓ '{spell.name}' added to {updated.name}.")
+    except ValidationError as e:
+        print("\n  ✗ Could not create spell:")
+        for err in e.errors():
+            print(f"    - {err['loc'][0]}: {err['msg']}")
+
+def remove_spell():
+    header("Remove Spell from Character")
+    character = pick_character()
+    if not character:
+        return
+    if not character.spells:
+        print("  This character has no spells.")
+        return
+
+    print(f"\n  Spells of {character.name}:")
+    for i, spell in enumerate(character.spells, 1):
+        print(f"    {i}. {spell.name}")
+
+    try:
+        idx = int(input("  Select spell to remove: ")) - 1
+        if 0 <= idx < len(character.spells):
+            new_spells = [sp for j, sp in enumerate(character.spells) if j != idx]
+            updated = character.copy(update={"spells": new_spells})
+            party[party.index(character)] = updated
+            print(f"\n  ✓ Spell removed.")
+        else:
+            print("  Invalid selection.")
+    except ValueError:
+        print("  Please enter a number.")
+
+
+# ─── Save / Load ──────────────────────────────────────────────────────────────
+
+def save_menu():
+    header("Save")
+    print("  1. Save single character")
+    print("  2. Save entire party")
+    print("  0. Back")
+    choice = input("\n  > ").strip()
+
+    if choice == "1":
+        header("Save Character")
+        character = pick_character()
+        if character:
+            filename = prompt_str("Filename (leave blank for auto)", "")
+            filename = filename if filename else None
+            manager.save_character(character, filename)
+
+    elif choice == "2":
+        if not party:
+            print("\n  Party is empty, nothing to save.")
+            return
+        header("Save Party")
+        filename = prompt_str("Filename", "party_save")
+        manager.save_all_data(party, filename)
+
+def load_menu():
+    header("Load")
+    print("  1. Load single character  (adds to current party)")
+    print("  2. Load entire party      (replaces current party)")
+    print("  0. Back")
+    choice = input("\n  > ").strip()
+
+    if choice == "1":
+        filepath = prompt_str("Path to file (e.g. saves/thorin.json)")
+        try:
+            character = manager.load_character(filepath)
+            party.append(character)
+            print(f"\n  ✓ {character.name} added to party.")
+        except FileNotFoundError:
+            print("  ✗ File not found.")
+        except Exception as e:
+            print(f"  ✗ Failed to load: {e}")
+
+    elif choice == "2":
+        filepath = prompt_str("Path to file (e.g. saves/party_save.json)")
+        try:
+            loaded = manager.load_all_data(filepath)
+            party.clear()
+            party.extend(loaded)
+            print(f"\n  ✓ Party loaded: {', '.join(c.name for c in party)}")
+        except FileNotFoundError:
+            print("  ✗ File not found.")
+        except Exception as e:
+            print(f"  ✗ Failed to load: {e}")
+
+
+# ─── Sub-menus ────────────────────────────────────────────────────────────────
+
+def characters_menu():
+    while True:
+        header("Characters")
+        print("  1. View character sheet")
+        print("  2. Create new character")
+        print("  3. Remove character")
+        print("  0. Back")
+        choice = input("\n  > ").strip()
+
+        if   choice == "1": view_characters()
+        elif choice == "2": create_character()
+        elif choice == "3": remove_character()
+        elif choice == "0": break
+        else: print("  Invalid option.")
+        pause()
+
+def items_menu():
+    while True:
+        header("Items")
+        print("  1. Add item to character")
+        print("  2. Remove item from character")
+        print("  0. Back")
+        choice = input("\n  > ").strip()
+
+        if   choice == "1": add_item()
+        elif choice == "2": remove_item()
+        elif choice == "0": break
+        else: print("  Invalid option.")
+        pause()
+
+def spells_menu():
+    while True:
+        header("Spells")
+        print("  1. Add spell to character")
+        print("  2. Remove spell from character")
+        print("  0. Back")
+        choice = input("\n  > ").strip()
+
+        if   choice == "1": add_spell()
+        elif choice == "2": remove_spell()
+        elif choice == "0": break
+        else: print("  Invalid option.")
+        pause()
+
+
+# ─── Main Loop ────────────────────────────────────────────────────────────────
 
 def main():
-    manager = GameDataManager()
+    print("\n  ╔══════════════════════════════════════╗")
+    print("  ║     DnD Campaign Manager  v1.0       ║")
+    print("  ╚══════════════════════════════════════╝")
 
-    # --- Create some items ---
-    print("Creating items...")
-    sword = Item(
-        name="Iron Sword",
-        description="A reliable iron sword, worn but sturdy.",
-        rarity="common",
-        weight=4.5,
-        value=15
-    )
-    staff = Item(
-        name="Arcane Staff",
-        description="A gnarled staff crackling with magical energy.",
-        rarity="rare",
-        weight=3.0,
-        value=250
-    )
-    holy_symbol = Item(
-        name="Golden Holy Symbol",
-        description="A golden symbol radiating divine warmth.",
-        rarity="uncommon",
-        weight=0.5,
-        value=80
-    )
+    while True:
+        header("Main Menu")
+        print(f"  Party: {len(party)} character(s)\n")
+        print_party()
+        print()
+        print("  1. Characters")
+        print("  2. Items")
+        print("  3. Spells")
+        print("  4. Save")
+        print("  5. Load")
+        print("  0. Quit")
+        choice = input("\n  > ").strip()
 
-    # --- Create some spells ---
-    print("Creating spells...")
-    fireball = Spell(
-        name="Fireball",
-        description="Hurls a blazing ball of fire at the target.",
-        casting_time="1",
-        range="120ft",
-        duration="Instantaneous",
-        damage_dice="3d6"
-    )
-    heal = Spell(
-        name="Cure Wounds",
-        description="Channels divine energy to restore the target's health.",
-        casting_time="1",
-        range="Touch",
-        duration="Instantaneous",
-        damage_dice=None
-    )
-    magic_missile = Spell(
-        name="Magic Missile",
-        description="Fires three darts of magical force, each dealing damage.",
-        casting_time="1",
-        range="120ft",
-        duration="Instantaneous",
-        damage_dice="1d4"
-    )
-
-    # --- Create characters ---
-    print("Creating characters...")
-    warrior = Character(
-        name="Thorin",
-        level=5,
-        strength=18,
-        intelligence=8,
-        faith=10,
-        vitality=15,
-        defence=16,
-        health_points=180,
-        max_health_points=180,
-        items=[sword],
-        spells=[]
-    )
-
-    wizard = Character(
-        name="Elara",
-        level=7,
-        strength=6,
-        intelligence=20,
-        faith=10,
-        vitality=8,
-        defence=8,
-        health_points=90,
-        max_health_points=90,
-        items=[staff],
-        spells=[fireball, magic_missile]
-    )
-
-    cleric = Character(
-        name="Brother Aldric",
-        level=4,
-        strength=12,
-        intelligence=12,
-        faith=18,
-        vitality=14,
-        defence=14,
-        health_points=130,
-        max_health_points=130,
-        items=[holy_symbol],
-        spells=[heal]
-    )
-
-    # --- Print all characters ---
-    print_character(warrior)
-    print_character(wizard)
-    print_character(cleric)
-
-    # --- Save individual character ---
-    print("Saving Thorin individually...")
-    manager.save_character(warrior, filename="thorin_save")
-
-    # --- Save all characters together ---
-    print("Saving all characters...")
-    all_save_path = manager.save_all_data([warrior, wizard, cleric], filename="party_save")
-
-    # --- Load individual character ---
-    print("\nLoading Thorin from file...")
-    loaded_warrior = manager.load_character("saves/thorin_save.json")
-    print(f"Loaded character: {loaded_warrior.name}, Level {loaded_warrior.level}")
-
-    # --- Load all characters ---
-    print("\nLoading entire party from file...")
-    party = manager.load_all_data(all_save_path)
-    print(f"Party members: {', '.join(c.name for c in party)}")
+        if   choice == "1": characters_menu()
+        elif choice == "2": items_menu()
+        elif choice == "3": spells_menu()
+        elif choice == "4": save_menu(); pause()
+        elif choice == "5": load_menu(); pause()
+        elif choice == "0":
+            print("\n  Farewell, adventurer.\n")
+            break
+        else:
+            print("  Invalid option.")
 
 
 if __name__ == "__main__":
