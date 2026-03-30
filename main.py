@@ -302,3 +302,50 @@ def load_menu():
             print("  ✗ File not found.")
         except Exception as e:
             print(f"  ✗ Failed to load: {e}")
+
+
+# ─── Sub-menus ────────────────────────────────────────────────────────────────
+
+def characters_menu():
+    while True:
+        header("Characters")
+        print("  1. View character sheet")
+        print("  2. Create new character")
+        print("  3. Remove character")
+        print("  0. Back")
+        choice = input("\n  > ").strip()
+
+        if   choice == "1": view_characters()
+        elif choice == "2": create_character()
+        elif choice == "3": remove_character()
+        elif choice == "0": break
+        else: print("  Invalid option.")
+        pause()
+
+def items_menu():
+    while True:
+        header("Items")
+        print("  1. Add item to character")
+        print("  2. Remove item from character")
+        print("  0. Back")
+        choice = input("\n  > ").strip()
+
+        if   choice == "1": add_item()
+        elif choice == "2": remove_item()
+        elif choice == "0": break
+        else: print("  Invalid option.")
+        pause()
+
+def spells_menu():
+    while True:
+        header("Spells")
+        print("  1. Add spell to character")
+        print("  2. Remove spell from character")
+        print("  0. Back")
+        choice = input("\n  > ").strip()
+
+        if   choice == "1": add_spell()
+        elif choice == "2": remove_spell()
+        elif choice == "0": break
+        else: print("  Invalid option.")
+        pause()
