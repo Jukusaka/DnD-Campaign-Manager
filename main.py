@@ -246,3 +246,59 @@ def remove_spell():
             print("  Invalid selection.")
     except ValueError:
         print("  Please enter a number.")
+
+
+# ─── Save / Load ──────────────────────────────────────────────────────────────
+
+def save_menu():
+    header("Save")
+    print("  1. Save single character")
+    print("  2. Save entire party")
+    print("  0. Back")
+    choice = input("\n  > ").strip()
+
+    if choice == "1":
+        header("Save Character")
+        character = pick_character()
+        if character:
+            filename = prompt_str("Filename (leave blank for auto)", "")
+            filename = filename if filename else None
+            manager.save_character(character, filename)
+
+    elif choice == "2":
+        if not party:
+            print("\n  Party is empty, nothing to save.")
+            return
+        header("Save Party")
+        filename = prompt_str("Filename", "party_save")
+        manager.save_all_data(party, filename)
+
+def load_menu():
+    header("Load")
+    print("  1. Load single character  (adds to current party)")
+    print("  2. Load entire party      (replaces current party)")
+    print("  0. Back")
+    choice = input("\n  > ").strip()
+
+    if choice == "1":
+        filepath = prompt_str("Path to file (e.g. saves/thorin.json)")
+        try:
+            character = manager.load_character(filepath)
+            party.append(character)
+            print(f"\n  ✓ {character.name} added to party.")
+        except FileNotFoundError:
+            print("  ✗ File not found.")
+        except Exception as e:
+            print(f"  ✗ Failed to load: {e}")
+
+    elif choice == "2":
+        filepath = prompt_str("Path to file (e.g. saves/party_save.json)")
+        try:
+            loaded = manager.load_all_data(filepath)
+            party.clear()
+            party.extend(loaded)
+            print(f"\n  ✓ Party loaded: {', '.join(c.name for c in party)}")
+        except FileNotFoundError:
+            print("  ✗ File not found.")
+        except Exception as e:
+            print(f"  ✗ Failed to load: {e}")
