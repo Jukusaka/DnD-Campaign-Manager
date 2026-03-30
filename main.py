@@ -349,3 +349,39 @@ def spells_menu():
         elif choice == "0": break
         else: print("  Invalid option.")
         pause()
+
+
+# ─── Main Loop ────────────────────────────────────────────────────────────────
+
+def main():
+    print("\n  ╔══════════════════════════════════════╗")
+    print("  ║     DnD Campaign Manager  v1.0       ║")
+    print("  ╚══════════════════════════════════════╝")
+
+    while True:
+        header("Main Menu")
+        print(f"  Party: {len(party)} character(s)\n")
+        print_party()
+        print()
+        print("  1. Characters")
+        print("  2. Items")
+        print("  3. Spells")
+        print("  4. Save")
+        print("  5. Load")
+        print("  0. Quit")
+        choice = input("\n  > ").strip()
+
+        if   choice == "1": characters_menu()
+        elif choice == "2": items_menu()
+        elif choice == "3": spells_menu()
+        elif choice == "4": save_menu(); pause()
+        elif choice == "5": load_menu(); pause()
+        elif choice == "0":
+            print("\n  Farewell, adventurer.\n")
+            break
+        else:
+            print("  Invalid option.")
+
+
+if __name__ == "__main__":
+    main()
