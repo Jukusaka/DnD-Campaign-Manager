@@ -64,3 +64,30 @@ def pick_character(prompt="  Select character number: ") -> Character | None:
     except ValueError:
         print("  Please enter a number.")
     return None
+
+
+# ─── Input Helpers ────────────────────────────────────────────────────────────
+
+def prompt_int(label: str, default: int = None) -> int:
+    while True:
+        raw = input(f"  {label}{f' [{default}]' if default is not None else ''}: ").strip()
+        if raw == "" and default is not None:
+            return default
+        try:
+            return int(raw)
+        except ValueError:
+            print("  Please enter a whole number.")
+
+def prompt_str(label: str, default: str = None) -> str:
+    raw = input(f"  {label}{f' [{default}]' if default is not None else ''}: ").strip()
+    return raw if raw else (default or "")
+
+def prompt_float(label: str, default: float = 0.0) -> float:
+    while True:
+        raw = input(f"  {label} [{default}]: ").strip()
+        if raw == "":
+            return default
+        try:
+            return float(raw)
+        except ValueError:
+            print("  Please enter a number.")
