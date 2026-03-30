@@ -91,3 +91,52 @@ def prompt_float(label: str, default: float = 0.0) -> float:
             return float(raw)
         except ValueError:
             print("  Please enter a number.")
+
+
+# ─── Character Actions ────────────────────────────────────────────────────────
+
+def create_character():
+    header("Create New Character")
+    try:
+        name    = prompt_str("Name")
+        level   = prompt_int("Level", 1)
+        str_    = prompt_int("Strength     (1-20)", 10)
+        int_    = prompt_int("Intelligence (1-20)", 10)
+        faith   = prompt_int("Faith        (1-20)", 10)
+        vit     = prompt_int("Vitality     (1-20)", 10)
+        def_    = prompt_int("Defence      (1-20)", 10)
+        max_hp  = prompt_int("Max HP", 100)
+
+        character = Character(
+            name=name, level=level,
+            strength=str_, intelligence=int_, faith=faith,
+            vitality=vit, defence=def_,
+            health_points=max_hp, max_health_points=max_hp
+        )
+        party.append(character)
+        print(f"\n  ✓ {character.name} added to the party!")
+    except ValidationError as e:
+        print("\n  ✗ Could not create character:")
+        for err in e.errors():
+            print(f"    - {err['loc'][0]}: {err['msg']}")
+
+def view_characters():
+    header("View Character Sheet")
+    character = pick_character()
+    if character:
+        print_character_sheet(character)
+
+def remove_character():
+    header("Remove Character")
+    print_party()
+    if not party:
+        return
+    try:
+        idx = int(input("  Select character to remove: ")) - 1
+        if 0 <= idx < len(party):
+            removed = party.pop(idx)
+            print(f"\n  ✓ {removed.name} removed from the party.")
+        else:
+            print("  Invalid selection.")
+    except ValueError:
+        print("  Please enter a number.")
