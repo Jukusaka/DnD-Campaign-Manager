@@ -140,3 +140,54 @@ def remove_character():
             print("  Invalid selection.")
     except ValueError:
         print("  Please enter a number.")
+
+
+# ─── Item Actions ─────────────────────────────────────────────────────────────
+
+def add_item():
+    header("Add Item to Character")
+    character = pick_character()
+    if not character:
+        return
+    print()
+    try:
+        name        = prompt_str("Item name")
+        description = prompt_str("Description")
+        rarity      = prompt_str("Rarity (common/uncommon/rare/very rare/legendary)", "common")
+        weight      = prompt_float("Weight (lb)", 0.0)
+        value       = prompt_int("Value (gold)", 0)
+
+        item = Item(name=name, description=description, rarity=rarity, weight=weight, value=value)
+        updated = character.copy(update={"items": character.items + [item]})
+        party[party.index(character)] = updated
+        print(f"\n  ✓ '{item.name}' added to {updated.name}.")
+    except ValidationError as e:
+        print("\n  ✗ Could not create item:")
+        for err in e.errors():
+            print(f"    - {err['loc'][0]}: {err['msg']}")
+
+def remove_item():
+    header("Remove Item from Character")
+    character = pick_character()
+    if not character:
+        return
+    if not character.items:
+        print("  This character has no items.")
+        return
+
+    print(f"\n  Items of {character.name}:")
+    for i, item in enumerate(character.items, 1):
+        print(f"    {i}. {item.name}")
+
+    try:
+        idx = int(input("  Select item to remove: ")) - 1
+        if 0 <= idx < len(character.items):
+            new_items = [it for j, it in enumerate(character.items) if j != idx]
+            updated = character.copy(update={"items": new_items})
+            party[party.index(character)] = updated
+            print(f"\n  ✓ Item removed.")
+        else:
+            print("  Invalid selection.")
+    except ValueError:
+        print("  Please enter a number.")
+
