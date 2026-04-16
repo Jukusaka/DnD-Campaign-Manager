@@ -2,3 +2,5 @@
 venv/
 # Cache files ignoring (Tests purpose)
 models/__pycache__/
+
+__pycache__
